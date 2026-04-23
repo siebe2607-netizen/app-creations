@@ -31,13 +31,55 @@
   .recipe .star { position: absolute; top: 0.5rem; right: 0.6rem; color: var(--gold); font-size: 1.1rem; }
   .empty { text-align: center; color: var(--muted); padding: 3rem 1rem; }
   .empty .big { font-size: 3rem; margin-bottom: 0.5rem; }
+  .flash { padding: 0.7rem 1rem; border-radius: 10px; margin-bottom: 0.75rem; font-size: 0.9rem; }
+  .flash-success { background: #065f46; color: #d1fae5; }
+  .flash-error { background: #7f1d1d; color: #fecaca; }
+  .io-panel { display: none; background: var(--card); border-radius: 14px; padding: 1rem; margin-bottom: 1rem; }
+  .io-panel.open { display: block; }
+  .io-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 520px) { .io-grid { grid-template-columns: 1fr; } }
+  .io-title { font-weight: 600; margin-bottom: 0.5rem; }
+  .io-panel input[type=file] { width: 100%; padding: 0.5rem; background: var(--card-hi); color: var(--text); border: 0; border-radius: 8px; font-family: inherit; }
+  .hint { color: var(--muted); font-size: 0.75rem; margin-top: 0.5rem; }
+  .hint code { background: var(--card-hi); padding: 0.1rem 0.3rem; border-radius: 4px; }
 {% endblock %}
 
 {% block body %}
 <header>
   <h1>🍽️ Recipes</h1>
-  <a class="btn" href="{{ url_for('new') }}">+ New</a>
+  <div style="display:flex; gap:0.4rem">
+    <button type="button" class="btn secondary" onclick="document.getElementById('io').classList.toggle('open')">⇅ Import/Export</button>
+    <a class="btn" href="{{ url_for('new') }}">+ New</a>
+  </div>
 </header>
+
+{% with msgs = get_flashed_messages(with_categories=true) %}
+  {% for cat, m in msgs %}
+  <div class="flash flash-{{ cat }}">{{ m }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div id="io" class="io-panel">
+  <div class="io-grid">
+    <form method="post" action="{{ url_for('import_recipes') }}" enctype="multipart/form-data">
+      <div class="io-title">📥 Import recipes</div>
+      <input type="file" name="file" accept=".json,application/json" required>
+      <label style="display:flex; gap:0.5rem; align-items:center; margin:0.5rem 0; color:var(--muted); font-size:0.85rem">
+        <input type="radio" name="mode" value="merge" checked style="width:auto; margin:0"> Merge (add to existing)
+      </label>
+      <label style="display:flex; gap:0.5rem; align-items:center; margin:0 0 0.5rem; color:var(--muted); font-size:0.85rem">
+        <input type="radio" name="mode" value="replace" style="width:auto; margin:0"> Replace all
+      </label>
+      <button type="submit" class="btn">Upload</button>
+      <div class="hint">JSON format: either <code>{"recipes": {...}}</code> or a plain list of recipe objects with <code>name</code>, <code>ingredients</code>, <code>steps</code>, <code>tags</code>, etc.</div>
+    </form>
+    <div>
+      <div class="io-title">📤 Export</div>
+      <a class="btn secondary" href="{{ url_for('export') }}">Download recipes.json</a>
+      <div class="hint">Backup all your recipes as JSON.</div>
+    </div>
+  </div>
+</div>
 
 {% if recipes %}
 <div class="dinner-cta">

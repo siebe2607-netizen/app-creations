@@ -7,11 +7,12 @@ from datetime import date
 from pathlib import Path
 from uuid import uuid4
 
-from flask import Flask, abort, redirect, render_template, request, url_for
+from flask import Flask, Response, abort, flash, get_flashed_messages, redirect, render_template, request, url_for
 
 DATA_FILE = Path(__file__).parent / "recipes.json"
 
 app = Flask(__name__)
+app.secret_key = "recipe-box-dev-key"
 
 
 def load() -> dict:
@@ -136,6 +137,71 @@ def delete(rid: str):
     data = load()
     data["recipes"].pop(rid, None)
     save(data)
+    return redirect(url_for("index"))
+
+
+@app.route("/export")
+def export():
+    """Download all recipes as JSON."""
+    data = load()
+    return Response(
+        json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False),
+        mimetype="application/json",
+        headers={"Content-Disposition": 'attachment; filename="recipes.json"'},
+    )
+
+
+@app.post("/import")
+def import_recipes():
+    """Upload a JSON file with recipes. Accepts either the full format
+    ({"recipes": {id: {...}}}) or a plain list of recipe dicts."""
+    f = request.files.get("file")
+    if not f or not f.filename:
+        flash("No file selected.", "error")
+        return redirect(url_for("index"))
+    try:
+        payload = json.loads(f.read().decode("utf-8"))
+    except Exception as e:
+        flash(f"Invalid JSON: {e}", "error")
+        return redirect(url_for("index"))
+
+    # Normalize to list of recipe dicts
+    if isinstance(payload, dict) and "recipes" in payload:
+        incoming = list(payload["recipes"].values()) if isinstance(payload["recipes"], dict) else payload["recipes"]
+    elif isinstance(payload, list):
+        incoming = payload
+    else:
+        flash("Unrecognized format. Expected a list or a {\"recipes\": {...}} object.", "error")
+        return redirect(url_for("index"))
+
+    mode = request.form.get("mode", "merge")  # merge or replace
+    data = load() if mode == "merge" else {"recipes": {}}
+    added = 0
+    skipped = 0
+    for raw in incoming:
+        if not isinstance(raw, dict) or not raw.get("name"):
+            skipped += 1
+            continue
+        rid = raw.get("id") or uuid4().hex[:8]
+        r = {
+            "id": rid,
+            "name": str(raw["name"])[:200],
+            "emoji": raw.get("emoji") or "🍽️",
+            "ingredients": [str(s) for s in (raw.get("ingredients") or [])],
+            "steps": [str(s) for s in (raw.get("steps") or [])],
+            "tags": [str(t).lower() for t in (raw.get("tags") or [])],
+            "time_min": raw.get("time_min") if isinstance(raw.get("time_min"), int) else None,
+            "favorite": bool(raw.get("favorite", False)),
+            "notes": str(raw.get("notes") or ""),
+            "last_cooked": raw.get("last_cooked"),
+            "times_cooked": int(raw.get("times_cooked") or 0),
+        }
+        data["recipes"][rid] = r
+        added += 1
+    save(data)
+    flash(f"Imported {added} recipe{'s' if added != 1 else ''}"
+          + (f" (skipped {skipped} invalid)" if skipped else "")
+          + f" — mode: {mode}", "success")
     return redirect(url_for("index"))
 
 
