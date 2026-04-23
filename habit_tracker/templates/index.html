@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Habit Tracker</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 2em auto; padding: 0 1em; color: #222; }
+    h1 { margin-bottom: 0.2em; }
+    .sub { color: #777; margin-bottom: 2em; }
+    form.add { display: flex; gap: 0.5em; margin-bottom: 2em; }
+    input[type=text] { padding: 0.5em; border: 1px solid #ccc; border-radius: 6px; font-size: 1em; }
+    input.name { flex: 1; }
+    input.emoji { width: 4em; text-align: center; }
+    button { padding: 0.5em 1em; border: 0; border-radius: 6px; background: #4a7; color: white; cursor: pointer; font-size: 1em; }
+    button.secondary { background: #eee; color: #333; }
+    button.danger { background: transparent; color: #c33; padding: 0.2em 0.4em; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 0.6em 0.4em; text-align: center; }
+    th { font-size: 0.8em; color: #888; font-weight: normal; }
+    td.habit { text-align: left; font-size: 1.1em; }
+    td.streak { color: #e77; font-weight: bold; }
+    .cell { display: inline-block; width: 24px; height: 24px; border-radius: 4px; background: #eee; }
+    .cell.done { background: #4a7; }
+    .today { outline: 2px solid #4a7; outline-offset: 1px; }
+    .empty { color: #aaa; text-align: center; padding: 2em; }
+  </style>
+</head>
+<body>
+  <h1>Habits</h1>
+  <div class="sub">Today is {{ days[-1].strftime("%A, %b %d") }}</div>
+
+  <form class="add" method="post" action="{{ url_for('add') }}">
+    <input class="emoji" type="text" name="emoji" placeholder="🎯" maxlength="4">
+    <input class="name" type="text" name="name" placeholder="New habit" required>
+    <button type="submit">Add</button>
+  </form>
+
+  {% if rows %}
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Streak</th>
+        {% for d in days %}<th>{{ d.strftime("%a") }}</th>{% endfor %}
+        <th></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="habit">{{ r.emoji }} {{ r.name }}</td>
+        <td class="streak">{{ r.streak }}🔥</td>
+        {% for d in r.week %}
+          <td><span class="cell {% if d.done %}done{% endif %} {% if loop.last %}today{% endif %}"></span></td>
+        {% endfor %}
+        <td>
+          <form method="post" action="{{ url_for('check', name=r.name) }}" style="display:inline">
+            <button type="submit" class="{% if r.done_today %}secondary{% endif %}" {% if r.done_today %}disabled{% endif %}>
+              {% if r.done_today %}✓ Done{% else %}Check{% endif %}
+            </button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('delete', name=r.name) }}" style="display:inline" onsubmit="return confirm('Delete {{ r.name }}?')">
+            <button type="submit" class="danger">✕</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No habits yet. Add your first one above.</div>
+  {% endif %}
+</body>
+</html>
