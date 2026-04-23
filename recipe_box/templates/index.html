@@ -106,12 +106,9 @@
   {% if query %}<a class="btn secondary" href="{{ url_for('index', tag=current_tag) }}">Clear</a>{% endif %}
 </form>
 
-{% if tags %}
-<div class="tags">
-  <a class="tag {% if not current_tag %}active{% endif %}" href="{{ url_for('index', q=query) }}">All</a>
-  {% for t in tags %}
-  <a class="tag {% if current_tag == t %}active{% endif %}" href="{{ url_for('index', tag=t, q=query) }}">{{ t }}</a>
-  {% endfor %}
+{% if current_tag %}
+<div class="result-meta">
+  Filtered by tag: <b>{{ current_tag }}</b> — <a href="{{ url_for('index', q=query) }}">clear</a>
 </div>
 {% endif %}
 
