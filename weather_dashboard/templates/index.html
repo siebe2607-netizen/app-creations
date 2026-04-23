@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Weather · {{ city }}</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --card-hi: #293548;
+      --text: #e2e8f0; --muted: #94a3b8;
+      --yes: #10b981; --maybe: #f59e0b; --no: #ef4444;
+    }
+    @media (prefers-color-scheme: light) {
+      :root { --bg:#f0f9ff; --card:#fff; --card-hi:#e0f2fe; --text:#0c1e3e; --muted:#64748b; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--card) 100%);
+      color: var(--text); min-height: 100vh;
+      padding: env(safe-area-inset-top) 1rem env(safe-area-inset-bottom);
+      max-width: 680px; margin: 0 auto;
+    }
+    header { padding: 1.5rem 0 1rem; }
+    h1 { margin: 0; font-size: 1.6rem; letter-spacing: -0.02em; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
+
+    form.search { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    input {
+      flex: 1; padding: 0.6rem 0.8rem; background: var(--card); color: var(--text);
+      border: 0; border-radius: 10px; font-size: 0.95rem; font-family: inherit; outline: none;
+    }
+    button {
+      background: var(--card); color: var(--text); border: 0; padding: 0.6rem 1rem;
+      border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.95rem;
+    }
+
+    .verdict {
+      border-radius: 18px; padding: 1.5rem; margin-bottom: 1rem;
+      text-align: center; color: white; font-weight: 700;
+    }
+    .verdict.yes { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); }
+    .verdict.maybe { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); }
+    .verdict.no { background: linear-gradient(135deg, #ef4444 0%, #f87171 100%); }
+    .verdict .q { font-size: 0.85rem; font-weight: 500; opacity: 0.9; margin-bottom: 0.5rem; }
+    .verdict .big { font-size: 1.6rem; }
+    .verdict ul { text-align: left; font-weight: 400; font-size: 0.85rem;
+                  margin: 0.8rem 0 0; padding-left: 1.2rem; opacity: 0.95; }
+
+    .current {
+      background: var(--card); border-radius: 18px; padding: 1.5rem;
+      margin-bottom: 1rem; display: flex; align-items: center; gap: 1.25rem;
+    }
+    .current .em { font-size: 4rem; line-height: 1; }
+    .current .temp { font-size: 3rem; font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
+    .current .desc { color: var(--muted); font-size: 0.9rem; margin-top: 0.2rem; }
+    .current .feels { font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
+
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1rem; }
+    .chip { background: var(--card); border-radius: 12px; padding: 0.7rem; text-align: center; }
+    .chip .lbl { font-size: 0.7rem; color: var(--muted); }
+    .chip .val { font-size: 0.95rem; font-weight: 600; margin-top: 0.2rem; }
+
+    .section-title { font-size: 0.8rem; color: var(--muted); text-transform: uppercase;
+                     letter-spacing: 0.08em; margin: 1rem 0 0.5rem 0.3rem; }
+    .forecast { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+    .day-card {
+      background: var(--card); border-radius: 12px; padding: 0.75rem 0.5rem; text-align: center;
+    }
+    .day-card .d { font-size: 0.8rem; font-weight: 600; }
+    .day-card .dt { font-size: 0.7rem; color: var(--muted); }
+    .day-card .e { font-size: 1.8rem; margin: 0.3rem 0; }
+    .day-card .t { font-size: 0.85rem; }
+    .day-card .lo { color: var(--muted); }
+    .day-card .rain { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+
+    .error { background: #7f1d1d; color: white; padding: 1rem; border-radius: 12px; }
+
+    @media (max-width: 480px) {
+      .grid, .forecast { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{{ city }}</h1>
+    <div class="sub">{{ current.temperature_2m if current else '' }}</div>
+  </header>
+
+  <form class="search" method="get">
+    <input type="text" name="city" placeholder="Change city (e.g. Amsterdam)">
+    <button type="submit">Go</button>
+  </form>
+
+  {% if error %}
+    <div class="error">Couldn't fetch weather: {{ error }}</div>
+  {% else %}
+
+  <div class="verdict {{ verdict.mood }}">
+    <div class="q">Can I wear short pants today?</div>
+    <div class="big">{{ verdict.verdict }}</div>
+    {% if verdict.reasons %}
+    <ul>
+      {% for r in verdict.reasons %}<li>{{ r }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+  <div class="current">
+    <div class="em">{{ emoji }}</div>
+    <div>
+      <div class="temp">{{ "%.0f"|format(current.temperature_2m) }}°</div>
+      <div class="desc">{{ desc }}</div>
+      <div class="feels">Feels like {{ "%.0f"|format(current.apparent_temperature) }}°C</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="chip"><div class="lbl">High</div><div class="val">{{ "%.0f"|format(today.temperature_2m_max) }}°</div></div>
+    <div class="chip"><div class="lbl">Low</div><div class="val">{{ "%.0f"|format(today.temperature_2m_min) }}°</div></div>
+    <div class="chip"><div class="lbl">Wind</div><div class="val">{{ "%.0f"|format(current.wind_speed_10m) }} km/h</div></div>
+    <div class="chip"><div class="lbl">Rain</div><div class="val">{{ today.precipitation_probability_max or 0 }}%</div></div>
+    <div class="chip"><div class="lbl">Humidity</div><div class="val">{{ current.relative_humidity_2m }}%</div></div>
+    <div class="chip"><div class="lbl">Rain (mm)</div><div class="val">{{ "%.1f"|format(today.precipitation_sum) }}</div></div>
+    <div class="chip"><div class="lbl">Sunrise</div><div class="val">{{ sunrise }}</div></div>
+    <div class="chip"><div class="lbl">Sunset</div><div class="val">{{ sunset }}</div></div>
+  </div>
+
+  <div class="section-title">Next 4 days</div>
+  <div class="forecast">
+    {% for f in forecast %}
+    <div class="day-card">
+      <div class="d">{{ f.day }}</div>
+      <div class="dt">{{ f.date }}</div>
+      <div class="e">{{ f.emoji }}</div>
+      <div class="t">{{ "%.0f"|format(f.max) }}° <span class="lo">/ {{ "%.0f"|format(f.min) }}°</span></div>
+      <div class="rain">☔ {{ f.rain_prob }}%</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% endif %}
+</body>
+</html>
