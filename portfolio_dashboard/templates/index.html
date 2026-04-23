@@ -47,6 +47,26 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .dim { color: var(--muted); }
 
+    form.add {
+      display: flex; gap: 0.5rem; background: var(--card);
+      padding: 0.5rem; border-radius: 12px; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    form.add input {
+      padding: 0.6rem 0.7rem; background: var(--card-hi); color: var(--text);
+      border: 0; border-radius: 8px; font-size: 0.9rem; font-family: inherit; outline: none;
+    }
+    form.add input[name=ticker] { flex: 2; min-width: 120px; text-transform: uppercase; }
+    form.add input[name=shares], form.add input[name=cost_basis] { flex: 1; min-width: 80px; }
+    form.add button {
+      background: var(--up); color: white; border: 0; padding: 0.6rem 1rem;
+      border-radius: 8px; cursor: pointer; font-weight: 600;
+    }
+    button.del {
+      background: transparent; color: var(--muted); border: 0; cursor: pointer;
+      padding: 0.2rem 0.4rem; font-size: 0.9rem;
+    }
+    button.del:hover { color: var(--down); }
+
     @media (max-width: 680px) {
       th.hide-sm, td.hide-sm { display: none; }
       .name { max-width: 120px; }
@@ -78,6 +98,13 @@
   </div>
   {% endif %}
 
+  <form class="add" method="post" action="{{ url_for('add') }}">
+    <input name="ticker" placeholder="Ticker (e.g. AAPL)" required maxlength="20">
+    <input name="shares" type="number" step="any" placeholder="Shares (opt)">
+    <input name="cost_basis" type="number" step="any" placeholder="Cost basis (opt)">
+    <button type="submit">+ Add</button>
+  </form>
+
   <table>
     <thead>
       <tr>
@@ -88,6 +115,7 @@
         <th class="hide-sm">Month</th>
         <th class="hide-sm">Trend</th>
         <th>Value</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -115,6 +143,11 @@
           {% else %}
             <span class="dim">watchlist</span>
           {% endif %}
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('delete', ticker=r.ticker) }}" onsubmit="return confirm('Remove {{ r.ticker }}?')" style="display:inline">
+            <button type="submit" class="del" title="Remove">✕</button>
+          </form>
         </td>
       </tr>
       {% endfor %}

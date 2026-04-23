@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import yaml
-from flask import Flask, render_template
+from flask import Flask, redirect, render_template, request, url_for
 
 from portfolio_dashboard import data
 
@@ -17,6 +17,10 @@ def load_holdings() -> list[dict]:
     with CONFIG_PATH.open() as f:
         cfg = yaml.safe_load(f)
     return cfg.get("holdings", [])
+
+
+def save_holdings(holdings: list[dict]) -> None:
+    CONFIG_PATH.write_text(yaml.safe_dump({"holdings": holdings}, sort_keys=False))
 
 
 def spark_svg(values: list[float], width: int = 120, height: int = 32) -> str:
@@ -86,6 +90,35 @@ def index():
         total_pnl=total_pnl,
         total_pnl_pct=total_pnl_pct,
     )
+
+
+@app.post("/add")
+def add():
+    ticker = request.form.get("ticker", "").strip().upper()
+    shares = request.form.get("shares", "").strip()
+    cost = request.form.get("cost_basis", "").strip()
+    if not ticker:
+        return redirect(url_for("index"))
+    holdings = load_holdings()
+    if any(h["ticker"].upper() == ticker for h in holdings):
+        return redirect(url_for("index"))
+    entry: dict = {"ticker": ticker}
+    if shares:
+        try: entry["shares"] = float(shares)
+        except ValueError: pass
+    if cost:
+        try: entry["cost_basis"] = float(cost)
+        except ValueError: pass
+    holdings.append(entry)
+    save_holdings(holdings)
+    return redirect(url_for("index"))
+
+
+@app.post("/delete/<ticker>")
+def delete(ticker: str):
+    holdings = [h for h in load_holdings() if h["ticker"].upper() != ticker.upper()]
+    save_holdings(holdings)
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":
