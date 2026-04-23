@@ -1,0 +1,70 @@
+{% extends "_base.html" %}
+{% block title %}{{ r.name }}{% endblock %}
+{% block extra_style %}
+  .recipe-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+  .recipe-head .em { font-size: 3.5rem; line-height: 1; }
+  .recipe-head .name { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin-top: 0.2rem; }
+  .tags { display: flex; gap: 0.3rem; margin-top: 0.4rem; flex-wrap: wrap; }
+  .tag { background: var(--card); color: var(--muted); padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; }
+  .section { background: var(--card); border-radius: 14px; padding: 1.2rem; margin-bottom: 1rem; }
+  .section h2 { margin: 0 0 0.6rem; font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .section ul, .section ol { margin: 0; padding-left: 1.3rem; }
+  .section li { padding: 0.2rem 0; }
+  .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+  .star-btn { background: transparent; border: 0; cursor: pointer; font-size: 1.8rem; color: #475569; padding: 0; }
+  .star-btn.fav { color: var(--gold); }
+{% endblock %}
+
+{% block body %}
+<header><a href="{{ url_for('index') }}">← Back</a></header>
+
+<div class="recipe-head">
+  <div class="em">{{ r.emoji }}</div>
+  <div>
+    <div class="name">{{ r.name }}</div>
+    <div class="meta">
+      {% if r.time_min %}⏱ {{ r.time_min }} min{% endif %}
+      {% if r.times_cooked %} · cooked {{ r.times_cooked }}×{% endif %}
+      {% if r.last_cooked %} · last: {{ r.last_cooked }}{% endif %}
+    </div>
+    {% if r.tags %}
+    <div class="tags">{% for t in r.tags %}<span class="tag">#{{ t }}</span>{% endfor %}</div>
+    {% endif %}
+  </div>
+  <form method="post" action="{{ url_for('favorite', rid=r.id) }}" style="margin-left:auto">
+    <button type="submit" class="star-btn {% if r.favorite %}fav{% endif %}" title="Toggle favorite">★</button>
+  </form>
+</div>
+
+{% if r.ingredients %}
+<div class="section">
+  <h2>Ingredients</h2>
+  <ul>{% for i in r.ingredients %}<li>{{ i }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+{% if r.steps %}
+<div class="section">
+  <h2>Steps</h2>
+  <ol>{% for s in r.steps %}<li>{{ s }}</li>{% endfor %}</ol>
+</div>
+{% endif %}
+
+{% if r.notes %}
+<div class="section">
+  <h2>Notes</h2>
+  <div>{{ r.notes }}</div>
+</div>
+{% endif %}
+
+<div class="actions">
+  <form method="post" action="{{ url_for('cooked', rid=r.id) }}">
+    <button type="submit" class="btn">🍳 Mark cooked today</button>
+  </form>
+  <a class="btn secondary" href="{{ url_for('edit', rid=r.id) }}">Edit</a>
+  <form method="post" action="{{ url_for('delete', rid=r.id) }}" onsubmit="return confirm('Delete {{ r.name }}?')">
+    <button type="submit" class="btn danger">Delete</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "_base.html" %}
+{% block extra_style %}
+  .dinner-cta {
+    background: linear-gradient(135deg, #f97316 0%, #eab308 100%);
+    border-radius: 18px; padding: 1.5rem; text-align: center; color: white;
+    margin-bottom: 1rem;
+  }
+  .dinner-cta .q { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
+  .dinner-cta .btn { background: white; color: #c2410c; font-size: 1.1rem; padding: 0.7rem 1.4rem; }
+  .dinner-cta .btn:hover { background: #fef3c7; color: #c2410c; }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem; }
+  .tag {
+    background: var(--card); color: var(--muted); padding: 0.35rem 0.7rem;
+    border-radius: 999px; font-size: 0.8rem; text-decoration: none;
+  }
+  .tag.active { background: var(--accent); color: white; }
+  .tag:hover { background: var(--card-hi); color: var(--text); }
+  .tag.active:hover { background: var(--accent-hi); color: white; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; }
+  .recipe {
+    background: var(--card); border-radius: 14px; padding: 1rem;
+    display: flex; flex-direction: column; gap: 0.4rem; position: relative;
+    text-decoration: none; color: var(--text);
+  }
+  .recipe:hover { background: var(--card-hi); color: var(--text); }
+  .recipe.highlight { outline: 3px solid var(--accent); animation: pulse 1s ease-out; }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+  .recipe .em { font-size: 2rem; }
+  .recipe .name { font-weight: 600; font-size: 1rem; }
+  .recipe .meta { color: var(--muted); font-size: 0.8rem; }
+  .recipe .star { position: absolute; top: 0.5rem; right: 0.6rem; color: var(--gold); font-size: 1.1rem; }
+  .empty { text-align: center; color: var(--muted); padding: 3rem 1rem; }
+  .empty .big { font-size: 3rem; margin-bottom: 0.5rem; }
+{% endblock %}
+
+{% block body %}
+<header>
+  <h1>🍽️ Recipes</h1>
+  <a class="btn" href="{{ url_for('new') }}">+ New</a>
+</header>
+
+{% if recipes %}
+<div class="dinner-cta">
+  <div class="q">What's for dinner tonight?</div>
+  <a class="btn" href="{{ url_for('pick', tag=current_tag) }}">🎲 Pick for me</a>
+</div>
+{% endif %}
+
+{% if tags %}
+<div class="tags">
+  <a class="tag {% if not current_tag %}active{% endif %}" href="{{ url_for('index') }}">All</a>
+  {% for t in tags %}
+  <a class="tag {% if current_tag == t %}active{% endif %}" href="{{ url_for('index', tag=t) }}">#{{ t }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if recipes %}
+<div class="grid">
+  {% for r in recipes %}
+  <a class="recipe {% if highlight_id == r.id %}highlight{% endif %}" href="{{ url_for('view', rid=r.id) }}">
+    {% if r.favorite %}<div class="star">★</div>{% endif %}
+    <div class="em">{{ r.emoji }}</div>
+    <div class="name">{{ r.name }}</div>
+    <div class="meta">
+      {% if r.time_min %}⏱ {{ r.time_min }} min{% endif %}
+      {% if r.times_cooked %} · cooked {{ r.times_cooked }}×{% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="big">👨‍🍳</div>
+  <div>No recipes yet.</div>
+  <div><a href="{{ url_for('new') }}">Add your first</a> to get started.</div>
+</div>
+{% endif %}
+{% endblock %}

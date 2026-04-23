@@ -1,0 +1,49 @@
+{% extends "_base.html" %}
+{% block title %}{% if r %}Edit {{ r.name }}{% else %}New recipe{% endif %}{% endblock %}
+{% block body %}
+<header>
+  <a href="{% if r %}{{ url_for('view', rid=r.id) }}{% else %}{{ url_for('index') }}{% endif %}">← Cancel</a>
+  <h1 style="font-size:1.2rem; margin:0">{% if r %}Edit{% else %}New recipe{% endif %}</h1>
+  <span></span>
+</header>
+
+<form method="post">
+  <div class="row">
+    <div style="flex:0 0 80px">
+      <label>Emoji</label>
+      <input name="emoji" maxlength="4" value="{{ r.emoji if r else '🍝' }}" style="text-align:center; font-size:1.5rem">
+    </div>
+    <div style="flex:1">
+      <label>Name</label>
+      <input name="name" required value="{{ r.name if r else '' }}">
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Time (min)</label>
+      <input name="time_min" type="number" min="0" value="{{ r.time_min if r and r.time_min else '' }}">
+    </div>
+    <div>
+      <label>Tags (comma-separated)</label>
+      <input name="tags" value="{{ r.tags|join(', ') if r else '' }}" placeholder="quick, italian, vegetarian">
+    </div>
+  </div>
+
+  <label>Ingredients (one per line)</label>
+  <textarea name="ingredients" placeholder="200g pasta&#10;2 cloves garlic&#10;olive oil">{{ r.ingredients|join('\n') if r else '' }}</textarea>
+
+  <label>Steps (one per line)</label>
+  <textarea name="steps" placeholder="Boil water&#10;Cook pasta 8 min&#10;Sauté garlic">{{ r.steps|join('\n') if r else '' }}</textarea>
+
+  <label>Notes</label>
+  <textarea name="notes" style="min-height:60px">{{ r.notes if r else '' }}</textarea>
+
+  <label style="display:flex; align-items:center; gap:0.5rem; margin: 0.5rem 0 1rem">
+    <input type="checkbox" name="favorite" style="width:auto; margin:0" {% if r and r.favorite %}checked{% endif %}>
+    <span>★ Favorite (gets picked more often)</span>
+  </label>
+
+  <button type="submit" class="btn">Save</button>
+</form>
+{% endblock %}

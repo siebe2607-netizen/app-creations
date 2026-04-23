@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>{% block title %}Recipes{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --card-hi: #293548;
+      --text: #e2e8f0; --muted: #94a3b8;
+      --accent: #f97316; --accent-hi: #fb923c;
+      --gold: #eab308; --danger: #ef4444;
+    }
+    @media (prefers-color-scheme: light) {
+      :root { --bg:#fff7ed; --card:#fff; --card-hi:#ffedd5; --text:#1c1917; --muted:#78716c; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      padding: env(safe-area-inset-top) 1rem env(safe-area-inset-bottom);
+      max-width: 760px; margin: 0 auto;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-hi); }
+    header { padding: 1.5rem 0 1rem; display: flex; justify-content: space-between; align-items: center; }
+    h1 { margin: 0; font-size: 1.7rem; letter-spacing: -0.02em; }
+    .btn {
+      display: inline-block; background: var(--accent); color: white; padding: 0.6rem 1rem;
+      border: 0; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.95rem;
+      font-weight: 600; text-decoration: none;
+    }
+    .btn:hover { background: var(--accent-hi); color: white; }
+    .btn.secondary { background: var(--card); color: var(--text); }
+    .btn.secondary:hover { background: var(--card-hi); color: var(--text); }
+    .btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+    input, textarea, select {
+      width: 100%; padding: 0.7rem; background: var(--card-hi); color: var(--text);
+      border: 0; border-radius: 10px; font-size: 1rem; font-family: inherit; outline: none;
+      margin-bottom: 0.6rem;
+    }
+    textarea { min-height: 100px; resize: vertical; font-family: ui-monospace, monospace; font-size: 0.9rem; }
+    label { display: block; color: var(--muted); font-size: 0.8rem; margin-bottom: 0.2rem; }
+    .row { display: flex; gap: 0.5rem; }
+    .row > * { flex: 1; }
+    {% block extra_style %}{% endblock %}
+  </style>
+</head>
+<body>
+  {% block body %}{% endblock %}
+</body>
+</html>
