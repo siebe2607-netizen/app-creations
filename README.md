@@ -1,15 +1,31 @@
-# app-creations
+# Habit Tracker 🌱
 
-Collection of small apps, one per branch.
+A mobile-friendly Flask app for building daily habits.
 
-## Branches
+## Features
 
-- `habit-tracker` — Flask-based habit tracker with streaks and a 7-day grid.
+- Add habits with a name and emoji
+- Check off habits for today (tap again to undo)
+- Current streak 🔥 and longest streak 🏆
+- Weekly completion % ring + per-habit weekly grid
+- Total completions counter
+- Confetti burst when you check off a habit
+- Dark/light theme (auto-matches system)
+- Works on mobile over local WiFi
 
-## Habit Tracker
+## Run it
 
 ```bash
-python -m habit_tracker.app
+python3.12 -m habit_tracker.app
 ```
 
-Then open http://localhost:5000.
+Then open http://localhost:5050 (or `http://<your-lan-ip>:5050` on your phone).
+
+Data is saved to `habit_tracker/habits_data.json` (gitignored).
+
+## Shell shortcuts
+
+Aliased in `~/.zshrc`:
+
+- `habits` — start the server
+- `habits-stop` — kill it from any terminal
