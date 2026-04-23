@@ -63,7 +63,7 @@
   <div class="io-grid">
     <form method="post" action="{{ url_for('import_recipes') }}" enctype="multipart/form-data">
       <div class="io-title">📥 Import recipes</div>
-      <input type="file" name="file" accept=".json,application/json" required>
+      <input type="file" name="file" accept=".json,.zip,application/json,application/zip" required>
       <label style="display:flex; gap:0.5rem; align-items:center; margin:0.5rem 0; color:var(--muted); font-size:0.85rem">
         <input type="radio" name="mode" value="merge" checked style="width:auto; margin:0"> Merge (add to existing)
       </label>
@@ -71,7 +71,7 @@
         <input type="radio" name="mode" value="replace" style="width:auto; margin:0"> Replace all
       </label>
       <button type="submit" class="btn">Upload</button>
-      <div class="hint">JSON format: either <code>{"recipes": {...}}</code> or a plain list of recipe objects with <code>name</code>, <code>ingredients</code>, <code>steps</code>, <code>tags</code>, etc.</div>
+      <div class="hint">Supports: our <code>recipes.json</code>, plain list of recipe objects, <b>Tandoor</b> single recipe JSON, or a <b>Tandoor .zip</b> export.</div>
     </form>
     <div>
       <div class="io-title">📤 Export</div>

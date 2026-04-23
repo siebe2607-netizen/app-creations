@@ -1,8 +1,10 @@
 """Recipe box with 'what's for dinner?' random picker."""
 from __future__ import annotations
 
+import io
 import json
 import random
+import zipfile
 from datetime import date
 from pathlib import Path
 from uuid import uuid4
@@ -151,51 +153,174 @@ def export():
     )
 
 
+def _is_tandoor(raw: dict) -> bool:
+    """Heuristic: Tandoor recipes have a list of step-objects with nested ingredients."""
+    if not isinstance(raw, dict):
+        return False
+    steps = raw.get("steps")
+    if not isinstance(steps, list) or not steps:
+        return False
+    first = steps[0]
+    if not isinstance(first, dict):
+        return False
+    return "instruction" in first or "ingredients" in first
+
+
+def _format_tandoor_ingredient(ing: dict) -> str:
+    """Turn Tandoor {amount, unit, food, note} → 'amount unit food, note'."""
+    amount = ing.get("amount")
+    unit = (ing.get("unit") or {}).get("name") if isinstance(ing.get("unit"), dict) else ing.get("unit")
+    food = (ing.get("food") or {}).get("name") if isinstance(ing.get("food"), dict) else ing.get("food")
+    note = ing.get("note")
+    parts = []
+    if amount:
+        # strip trailing .0
+        a = f"{amount:g}" if isinstance(amount, (int, float)) else str(amount)
+        parts.append(a)
+    if unit: parts.append(str(unit))
+    if food: parts.append(str(food))
+    line = " ".join(parts).strip()
+    if note:
+        line = f"{line}, {note}" if line else str(note)
+    return line or "(ingredient)"
+
+
+def _parse_tandoor(raw: dict) -> dict:
+    """Convert a Tandoor recipe JSON → our recipe format."""
+    ingredients: list[str] = []
+    step_texts: list[str] = []
+    for step in raw.get("steps") or []:
+        if not isinstance(step, dict):
+            continue
+        for ing in step.get("ingredients") or []:
+            if isinstance(ing, dict):
+                ingredients.append(_format_tandoor_ingredient(ing))
+        instr = (step.get("instruction") or "").strip()
+        if instr:
+            # split on double newlines — Tandoor often has multi-paragraph steps
+            for para in instr.split("\n\n"):
+                para = para.strip()
+                if para:
+                    step_texts.append(para)
+
+    tags: list[str] = []
+    for kw in raw.get("keywords") or []:
+        if isinstance(kw, dict) and kw.get("name"):
+            tags.append(str(kw["name"]).lower())
+        elif isinstance(kw, str):
+            tags.append(kw.lower())
+
+    working = raw.get("working_time") or 0
+    waiting = raw.get("waiting_time") or 0
+    total = int(working) + int(waiting) if (working or waiting) else None
+
+    description = raw.get("description") or ""
+    notes = description.strip() if isinstance(description, str) else ""
+
+    return {
+        "name": str(raw.get("name") or "Untitled")[:200],
+        "emoji": "🍽️",
+        "ingredients": ingredients,
+        "steps": step_texts,
+        "tags": tags,
+        "time_min": total,
+        "favorite": False,
+        "notes": notes,
+        "last_cooked": None,
+        "times_cooked": 0,
+    }
+
+
+def _normalize_native(raw: dict) -> dict:
+    """Normalize a recipe in our own format, fixing/filling fields."""
+    return {
+        "name": str(raw["name"])[:200],
+        "emoji": raw.get("emoji") or "🍽️",
+        "ingredients": [str(s) for s in (raw.get("ingredients") or [])],
+        "steps": [str(s) for s in (raw.get("steps") or [])],
+        "tags": [str(t).lower() for t in (raw.get("tags") or [])],
+        "time_min": raw.get("time_min") if isinstance(raw.get("time_min"), int) else None,
+        "favorite": bool(raw.get("favorite", False)),
+        "notes": str(raw.get("notes") or ""),
+        "last_cooked": raw.get("last_cooked"),
+        "times_cooked": int(raw.get("times_cooked") or 0),
+    }
+
+
+def _collect_from_payload(payload) -> list[dict]:
+    """Return a list of recipe dicts in our format from any supported source."""
+    out: list[dict] = []
+    # Case 1: our format {"recipes": {id: {...}}} or {"recipes": [...]}
+    if isinstance(payload, dict) and "recipes" in payload:
+        items = payload["recipes"]
+        items = list(items.values()) if isinstance(items, dict) else items
+        for raw in items or []:
+            if isinstance(raw, dict) and raw.get("name"):
+                out.append(_normalize_native(raw) if not _is_tandoor(raw) else _parse_tandoor(raw))
+        return out
+    # Case 2: single Tandoor recipe object
+    if isinstance(payload, dict) and _is_tandoor(payload):
+        return [_parse_tandoor(payload)]
+    # Case 3: our format single recipe
+    if isinstance(payload, dict) and payload.get("name"):
+        return [_normalize_native(payload)]
+    # Case 4: plain list
+    if isinstance(payload, list):
+        for raw in payload:
+            if not isinstance(raw, dict) or not raw.get("name"):
+                continue
+            out.append(_parse_tandoor(raw) if _is_tandoor(raw) else _normalize_native(raw))
+        return out
+    return []
+
+
 @app.post("/import")
 def import_recipes():
-    """Upload a JSON file with recipes. Accepts either the full format
-    ({"recipes": {id: {...}}}) or a plain list of recipe dicts."""
+    """Upload a .json or .zip file. Supports:
+    - Our native format ({"recipes": {...}} or plain list)
+    - Tandoor single-recipe JSON
+    - Tandoor .zip export (one folder per recipe, each with recipe.json)"""
     f = request.files.get("file")
     if not f or not f.filename:
         flash("No file selected.", "error")
         return redirect(url_for("index"))
+
+    blob = f.read()
+    incoming: list[dict] = []
+    skipped = 0
+
+    # Detect by magic bytes / filename
+    is_zip = blob[:4] == b"PK\x03\x04" or f.filename.lower().endswith(".zip")
+
     try:
-        payload = json.loads(f.read().decode("utf-8"))
+        if is_zip:
+            with zipfile.ZipFile(io.BytesIO(blob)) as z:
+                for name in z.namelist():
+                    if not name.lower().endswith(".json"):
+                        continue
+                    try:
+                        payload = json.loads(z.read(name).decode("utf-8"))
+                    except Exception:
+                        skipped += 1
+                        continue
+                    incoming.extend(_collect_from_payload(payload))
+        else:
+            payload = json.loads(blob.decode("utf-8"))
+            incoming = _collect_from_payload(payload)
     except Exception as e:
-        flash(f"Invalid JSON: {e}", "error")
+        flash(f"Could not parse file: {e}", "error")
         return redirect(url_for("index"))
 
-    # Normalize to list of recipe dicts
-    if isinstance(payload, dict) and "recipes" in payload:
-        incoming = list(payload["recipes"].values()) if isinstance(payload["recipes"], dict) else payload["recipes"]
-    elif isinstance(payload, list):
-        incoming = payload
-    else:
-        flash("Unrecognized format. Expected a list or a {\"recipes\": {...}} object.", "error")
+    if not incoming:
+        flash("No valid recipes found in the file.", "error")
         return redirect(url_for("index"))
 
-    mode = request.form.get("mode", "merge")  # merge or replace
+    mode = request.form.get("mode", "merge")
     data = load() if mode == "merge" else {"recipes": {}}
     added = 0
-    skipped = 0
-    for raw in incoming:
-        if not isinstance(raw, dict) or not raw.get("name"):
-            skipped += 1
-            continue
-        rid = raw.get("id") or uuid4().hex[:8]
-        r = {
-            "id": rid,
-            "name": str(raw["name"])[:200],
-            "emoji": raw.get("emoji") or "🍽️",
-            "ingredients": [str(s) for s in (raw.get("ingredients") or [])],
-            "steps": [str(s) for s in (raw.get("steps") or [])],
-            "tags": [str(t).lower() for t in (raw.get("tags") or [])],
-            "time_min": raw.get("time_min") if isinstance(raw.get("time_min"), int) else None,
-            "favorite": bool(raw.get("favorite", False)),
-            "notes": str(raw.get("notes") or ""),
-            "last_cooked": raw.get("last_cooked"),
-            "times_cooked": int(raw.get("times_cooked") or 0),
-        }
+    for r in incoming:
+        rid = uuid4().hex[:8]
+        r["id"] = rid
         data["recipes"][rid] = r
         added += 1
     save(data)
