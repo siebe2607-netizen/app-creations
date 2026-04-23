@@ -29,7 +29,7 @@
       {% if r.last_cooked %} · last: {{ r.last_cooked }}{% endif %}
     </div>
     {% if r.tags %}
-    <div class="tags">{% for t in r.tags %}<span class="tag">#{{ t }}</span>{% endfor %}</div>
+    <div class="tags">{% for t in r.tags %}<span class="tag">{{ t }}</span>{% endfor %}</div>
     {% endif %}
   </div>
   <form method="post" action="{{ url_for('favorite', rid=r.id) }}" style="margin-left:auto">

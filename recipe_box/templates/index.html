@@ -42,6 +42,17 @@
   .io-panel input[type=file] { width: 100%; padding: 0.5rem; background: var(--card-hi); color: var(--text); border: 0; border-radius: 8px; font-family: inherit; }
   .hint { color: var(--muted); font-size: 0.75rem; margin-top: 0.5rem; }
   .hint code { background: var(--card-hi); padding: 0.1rem 0.3rem; border-radius: 4px; }
+  form.search { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; }
+  form.search input[type=search] {
+    flex: 1; padding: 0.65rem 0.8rem; background: var(--card); color: var(--text);
+    border: 0; border-radius: 10px; font-size: 0.95rem; font-family: inherit; outline: none;
+  }
+  .result-meta { color: var(--muted); font-size: 0.8rem; margin: 0.75rem 0.3rem; }
+  .pagination {
+    display: flex; gap: 0.75rem; align-items: center; justify-content: center;
+    margin-top: 1.25rem; flex-wrap: wrap;
+  }
+  .pagination .dim { color: var(--muted); font-size: 0.9rem; }
 {% endblock %}
 
 {% block body %}
@@ -88,14 +99,25 @@
 </div>
 {% endif %}
 
+<form class="search" method="get" action="{{ url_for('index') }}">
+  <input type="search" name="q" value="{{ query }}" placeholder="Search name, ingredients, tags…" autocomplete="off">
+  {% if current_tag %}<input type="hidden" name="tag" value="{{ current_tag }}">{% endif %}
+  <button type="submit" class="btn">Search</button>
+  {% if query %}<a class="btn secondary" href="{{ url_for('index', tag=current_tag) }}">Clear</a>{% endif %}
+</form>
+
 {% if tags %}
 <div class="tags">
-  <a class="tag {% if not current_tag %}active{% endif %}" href="{{ url_for('index') }}">All</a>
+  <a class="tag {% if not current_tag %}active{% endif %}" href="{{ url_for('index', q=query) }}">All</a>
   {% for t in tags %}
-  <a class="tag {% if current_tag == t %}active{% endif %}" href="{{ url_for('index', tag=t) }}">#{{ t }}</a>
+  <a class="tag {% if current_tag == t %}active{% endif %}" href="{{ url_for('index', tag=t, q=query) }}">{{ t }}</a>
   {% endfor %}
 </div>
 {% endif %}
+
+<div class="result-meta">
+  {% if total %}{{ total }} recipe{{ 's' if total != 1 else '' }}{% if pages > 1 %} · page {{ page }}/{{ pages }}{% endif %}{% endif %}
+</div>
 
 {% if recipes %}
 <div class="grid">
@@ -111,6 +133,15 @@
   </a>
   {% endfor %}
 </div>
+
+{% if pages > 1 %}
+<div class="pagination">
+  {% if page > 1 %}<a class="btn secondary" href="{{ url_for('index', page=page-1, q=query, tag=current_tag) }}">← Prev</a>{% endif %}
+  <span class="dim">Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}<a class="btn secondary" href="{{ url_for('index', page=page+1, q=query, tag=current_tag) }}">Next →</a>{% endif %}
+</div>
+{% endif %}
+
 {% else %}
 <div class="empty">
   <div class="big">👨‍🍳</div>

@@ -34,19 +34,52 @@ def all_tags(recipes: dict) -> list[str]:
     return sorted(tags)
 
 
+PER_PAGE = 24
+
+
+def _matches(r: dict, q: str) -> bool:
+    """Case-insensitive search across name, ingredients, tags, notes."""
+    hay = " ".join([
+        r.get("name", ""),
+        " ".join(r.get("ingredients") or []),
+        " ".join(r.get("tags") or []),
+        r.get("notes", ""),
+    ]).lower()
+    return all(tok in hay for tok in q.lower().split())
+
+
 @app.route("/")
 def index():
     data = load()
     tag = request.args.get("tag", "").strip()
+    q = request.args.get("q", "").strip()
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except ValueError:
+        page = 1
+
     recipes = list(data["recipes"].values())
     if tag:
         recipes = [r for r in recipes if tag in r.get("tags", [])]
+    if q:
+        recipes = [r for r in recipes if _matches(r, q)]
     recipes.sort(key=lambda r: (not r.get("favorite"), r["name"].lower()))
+
+    total = len(recipes)
+    pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
+    page = min(page, pages)
+    start = (page - 1) * PER_PAGE
+    page_recipes = recipes[start:start + PER_PAGE]
+
     return render_template(
         "index.html",
-        recipes=recipes,
+        recipes=page_recipes,
+        total=total,
+        page=page,
+        pages=pages,
         tags=all_tags(data["recipes"]),
         current_tag=tag,
+        query=q,
         highlight_id=request.args.get("pick"),
     )
 
