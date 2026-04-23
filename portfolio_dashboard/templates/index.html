@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Portfolio</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --card-hi: #293548;
+      --text: #e2e8f0; --muted: #94a3b8;
+      --up: #10b981; --down: #ef4444; --border: #334155;
+    }
+    @media (prefers-color-scheme: light) {
+      :root { --bg:#f8fafc; --card:#fff; --card-hi:#f1f5f9; --text:#0f172a; --muted:#64748b; --border:#e2e8f0; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      padding: env(safe-area-inset-top) 1rem env(safe-area-inset-bottom);
+      max-width: 960px; margin: 0 auto;
+    }
+    header { padding: 1.5rem 0 1rem; display: flex; justify-content: space-between; align-items: baseline; }
+    h1 { margin: 0; font-size: 1.8rem; letter-spacing: -0.02em; }
+    .refresh { background: var(--card); color: var(--text); border: 0; padding: 0.5rem 0.9rem;
+               border-radius: 8px; cursor: pointer; font-size: 0.9rem; text-decoration: none; }
+    .refresh:hover { background: var(--card-hi); }
+
+    .summary {
+      background: var(--card); border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem;
+      display: flex; gap: 2rem; flex-wrap: wrap;
+    }
+    .summary .block .label { font-size: 0.8rem; color: var(--muted); }
+    .summary .block .value { font-size: 1.6rem; font-weight: 700; margin-top: 0.2rem; }
+    .up { color: var(--up); } .down { color: var(--down); }
+
+    table { width: 100%; border-collapse: separate; border-spacing: 0 0.4rem; }
+    th { text-align: right; font-size: 0.75rem; color: var(--muted); font-weight: 500;
+         padding: 0 0.6rem 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    th:first-child, td:first-child { text-align: left; }
+    td { background: var(--card); padding: 0.8rem 0.6rem; text-align: right; font-variant-numeric: tabular-nums; }
+    td:first-child { border-radius: 10px 0 0 10px; }
+    td:last-child { border-radius: 0 10px 10px 0; }
+    .ticker { font-weight: 700; font-size: 0.95rem; }
+    .name { color: var(--muted); font-size: 0.75rem; margin-top: 0.1rem; max-width: 180px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dim { color: var(--muted); }
+
+    @media (max-width: 680px) {
+      th.hide-sm, td.hide-sm { display: none; }
+      .name { max-width: 120px; }
+      h1 { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Portfolio</h1>
+    <a class="refresh" href="{{ url_for('index') }}">↻ Refresh</a>
+  </header>
+
+  {% if total_value is not none %}
+  <div class="summary">
+    <div class="block">
+      <div class="label">Total Value</div>
+      <div class="value">{{ "{:,.2f}".format(total_value) }}</div>
+    </div>
+    {% if total_pnl is not none %}
+    <div class="block">
+      <div class="label">P&L</div>
+      <div class="value {{ 'up' if total_pnl >= 0 else 'down' }}">
+        {{ "{:+,.2f}".format(total_pnl) }}
+        {% if total_pnl_pct is not none %}<span style="font-size:1rem">({{ "%+.2f"|format(total_pnl_pct) }}%)</span>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Price</th>
+        <th>Day</th>
+        <th class="hide-sm">Week</th>
+        <th class="hide-sm">Month</th>
+        <th class="hide-sm">Trend</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>
+          <div class="ticker">{{ r.ticker }}</div>
+          <div class="name">{{ r.name }}</div>
+        </td>
+        <td>{% if r.price is not none %}{{ "%.2f"|format(r.price) }} <span class="dim">{{ r.currency }}</span>{% else %}—{% endif %}</td>
+        <td class="{{ 'up' if (r.day_pct or 0) >= 0 else 'down' }}">
+          {% if r.day_pct is not none %}{{ "%+.2f"|format(r.day_pct) }}%{% else %}—{% endif %}
+        </td>
+        <td class="hide-sm {{ 'up' if (r.week_pct or 0) >= 0 else 'down' }}">
+          {% if r.week_pct is not none %}{{ "%+.2f"|format(r.week_pct) }}%{% else %}—{% endif %}
+        </td>
+        <td class="hide-sm {{ 'up' if (r.month_pct or 0) >= 0 else 'down' }}">
+          {% if r.month_pct is not none %}{{ "%+.2f"|format(r.month_pct) }}%{% else %}—{% endif %}
+        </td>
+        <td class="hide-sm">{{ r.spark|safe }}</td>
+        <td>
+          {% if r.value is not none %}
+            {{ "{:,.0f}".format(r.value) }}
+            {% if r.pnl_pct is not none %}<div class="name {{ 'up' if r.pnl_pct >= 0 else 'down' }}">{{ "%+.1f"|format(r.pnl_pct) }}%</div>{% endif %}
+          {% else %}
+            <span class="dim">watchlist</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

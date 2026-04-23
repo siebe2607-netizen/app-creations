@@ -1,0 +1,21 @@
+# Your holdings. Add `shares` and `cost_basis` (per share, in ticker's currency)
+# to see P&L. Tickers without shares show as watchlist items.
+holdings:
+  - ticker: BABA
+  - ticker: ADYEN.AS
+  - ticker: CSG.AS
+  - ticker: DLO
+  - ticker: GRID.DE
+  - ticker: NATO.MI
+  - ticker: GRAB
+  - ticker: MSFT
+  - ticker: NOVO-B.CO
+  - ticker: POET
+  - ticker: PHE.L
+  - ticker: VWCE.DE
+  - ticker: W1TB.DE
+  - ticker: XRP-USD
+  - ticker: STOR.AS
+  - ticker: DFND.PA
+  - ticker: CEBL.DE
+  - ticker: SEC0.DE
