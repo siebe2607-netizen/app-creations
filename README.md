@@ -1,15 +1,36 @@
-# app-creations
+# Weather Dashboard ☀️
 
-Collection of small apps, one per branch.
+A mobile-friendly Flask app that tells you if you can wear short pants today.
 
-## Branches
+## Features
 
-- `habit-tracker` — Flask-based habit tracker with streaks and a 7-day grid.
+- Current conditions + 4-day forecast (Open-Meteo API, no key needed)
+- **Short-pants verdict** — scores max temp, feels-like, rain probability, and wind to give a YES / MAYBE / NO with reasons
+- Search any city (defaults to Groningen, NL)
+- Sunrise / sunset times
+- Humidity, wind, rain probability, daily high/low
+- Weather-code emoji indicators
+- Gradient card UI, dark/light theme
 
-## Habit Tracker
+## Run it
 
 ```bash
-python -m habit_tracker.app
+python3.12 -m weather_dashboard.app
 ```
 
-Then open http://localhost:5000.
+Open http://localhost:5052 (or `http://<your-lan-ip>:5052` on your phone).
+
+## How the short-pants verdict works
+
+Scores based on:
+- Max temp today (≥22°C = +3, ≥18 = +2, ≥15 = +1, <15 = -2)
+- Feels-like right now
+- Rain amount + probability
+- Wind speed
+
+Verdict: score ≥3 = YES, ≥1 = probably, ≥-1 = risky, else NO.
+
+## Shell shortcuts
+
+- `weather` — start the server
+- `weather-stop` — kill it
