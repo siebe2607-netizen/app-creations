@@ -30,6 +30,7 @@ def add_habit(name: str, emoji: str) -> None:
 
 
 def check_off(name: str) -> None:
+    """Toggle today's completion for habit."""
     data = load()
     if name not in data["habits"]:
         print(f"No habit named '{name}'. Add it first.")
@@ -37,11 +38,33 @@ def check_off(name: str) -> None:
     today = date.today().isoformat()
     completions = data["habits"][name]["completions"]
     if today in completions:
-        print(f"Already checked off {name} today.")
+        completions.remove(today)
+        save(data)
+        print(f"Unchecked {name} for today.")
         return
     completions.append(today)
     save(data)
     print(f"{data['habits'][name]['emoji']} {name} — done for today!")
+
+
+def longest_streak(completions: list[str]) -> int:
+    if not completions:
+        return 0
+    dates = sorted({date.fromisoformat(d) for d in completions})
+    best = cur = 1
+    for i in range(1, len(dates)):
+        if (dates[i] - dates[i - 1]).days == 1:
+            cur += 1
+            best = max(best, cur)
+        else:
+            cur = 1
+    return best
+
+
+def weekly_pct(completions: list[str]) -> int:
+    today = date.today()
+    week = {(today - timedelta(days=i)).isoformat() for i in range(7)}
+    return round(len(set(completions) & week) / 7 * 100)
 
 
 def streak(completions: list[str]) -> int:

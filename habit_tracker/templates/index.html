@@ -1,77 +1,222 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Habit Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Habits</title>
   <style>
-    body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 2em auto; padding: 0 1em; color: #222; }
-    h1 { margin-bottom: 0.2em; }
-    .sub { color: #777; margin-bottom: 2em; }
-    form.add { display: flex; gap: 0.5em; margin-bottom: 2em; }
-    input[type=text] { padding: 0.5em; border: 1px solid #ccc; border-radius: 6px; font-size: 1em; }
-    input.name { flex: 1; }
-    input.emoji { width: 4em; text-align: center; }
-    button { padding: 0.5em 1em; border: 0; border-radius: 6px; background: #4a7; color: white; cursor: pointer; font-size: 1em; }
-    button.secondary { background: #eee; color: #333; }
-    button.danger { background: transparent; color: #c33; padding: 0.2em 0.4em; }
-    table { width: 100%; border-collapse: collapse; }
-    td, th { padding: 0.6em 0.4em; text-align: center; }
-    th { font-size: 0.8em; color: #888; font-weight: normal; }
-    td.habit { text-align: left; font-size: 1.1em; }
-    td.streak { color: #e77; font-weight: bold; }
-    .cell { display: inline-block; width: 24px; height: 24px; border-radius: 4px; background: #eee; }
-    .cell.done { background: #4a7; }
-    .today { outline: 2px solid #4a7; outline-offset: 1px; }
-    .empty { color: #aaa; text-align: center; padding: 2em; }
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-hi: #293548;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #10b981;
+      --accent-hi: #34d399;
+      --fire: #f97316;
+      --danger: #ef4444;
+      --border: #334155;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc; --card: #ffffff; --card-hi: #f1f5f9;
+        --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro", system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      padding: env(safe-area-inset-top) 1rem env(safe-area-inset-bottom);
+      max-width: 680px; margin: 0 auto;
+    }
+    header { padding: 1.5rem 0 1rem; }
+    h1 { margin: 0; font-size: 2rem; letter-spacing: -0.02em; }
+    .sub { color: var(--muted); font-size: 0.9rem; margin-top: 0.25rem; }
+    .overall {
+      background: var(--card); border-radius: 14px; padding: 1rem;
+      margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;
+    }
+    .ring {
+      --pct: 0;
+      width: 54px; height: 54px; border-radius: 50%; flex-shrink: 0;
+      background: conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--card-hi) 0);
+      display: grid; place-items: center;
+    }
+    .ring::before {
+      content: ""; width: 42px; height: 42px; border-radius: 50%; background: var(--card);
+      grid-area: 1/1;
+    }
+    .ring span { grid-area: 1/1; font-weight: 700; font-size: 0.85rem; z-index: 1; }
+    .overall .label { font-size: 0.85rem; color: var(--muted); }
+    .overall .value { font-size: 1.1rem; font-weight: 600; }
+
+    form.add {
+      display: flex; gap: 0.5rem; background: var(--card);
+      padding: 0.5rem; border-radius: 14px; margin-bottom: 1rem;
+    }
+    input, button { font-family: inherit; font-size: 1rem; border: 0; outline: none; }
+    input[type=text] {
+      padding: 0.75rem; background: var(--card-hi); color: var(--text); border-radius: 10px;
+    }
+    input.name { flex: 1; min-width: 0; }
+    input.emoji { width: 3.5rem; text-align: center; font-size: 1.3rem; }
+    button.primary {
+      background: var(--accent); color: white; padding: 0.75rem 1.1rem;
+      border-radius: 10px; font-weight: 600; cursor: pointer;
+    }
+    button.primary:hover { background: var(--accent-hi); }
+
+    .emoji-picker { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 1rem; font-size: 1.3rem; }
+    .emoji-picker button {
+      background: var(--card); border-radius: 8px; padding: 0.35rem 0.55rem;
+      cursor: pointer; transition: transform 0.1s;
+    }
+    .emoji-picker button:hover { transform: scale(1.15); background: var(--card-hi); }
+
+    .habit {
+      background: var(--card); border-radius: 14px; padding: 1rem;
+      margin-bottom: 0.75rem; display: grid;
+      grid-template-columns: 1fr auto; gap: 0.75rem; align-items: center;
+    }
+    .habit-top { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+    .habit-title { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+    .habit-title .em { font-size: 1.4rem; }
+    .stats { display: flex; gap: 0.75rem; font-size: 0.8rem; color: var(--muted); flex-wrap: wrap; }
+    .stats span { white-space: nowrap; }
+    .fire { color: var(--fire); font-weight: 700; }
+    .week {
+      grid-column: 1 / -1; display: grid; grid-template-columns: repeat(7, 1fr);
+      gap: 0.3rem; margin-top: 0.25rem;
+    }
+    .day { text-align: center; }
+    .day .lbl { font-size: 0.65rem; color: var(--muted); margin-bottom: 0.2rem; }
+    .cell {
+      aspect-ratio: 1; border-radius: 6px; background: var(--card-hi);
+      display: grid; place-items: center; color: white; font-size: 0.8rem;
+    }
+    .cell.done { background: var(--accent); }
+    .day.today .cell { outline: 2px solid var(--accent-hi); outline-offset: 1px; }
+
+    .actions { display: flex; flex-direction: column; gap: 0.4rem; }
+    button.check {
+      background: var(--accent); color: white; padding: 0.65rem 0.9rem;
+      border-radius: 10px; font-weight: 600; cursor: pointer; min-width: 90px;
+      transition: transform 0.1s;
+    }
+    button.check:active { transform: scale(0.95); }
+    button.check.done { background: var(--card-hi); color: var(--muted); }
+    button.del {
+      background: transparent; color: var(--muted); cursor: pointer;
+      font-size: 0.8rem; padding: 0.2rem;
+    }
+    button.del:hover { color: var(--danger); }
+
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+    .empty .big { font-size: 3rem; margin-bottom: 0.5rem; }
+
+    .confetti { position: fixed; width: 10px; height: 10px; pointer-events: none; z-index: 1000; opacity: 0; }
+    @keyframes burst {
+      0% { transform: translate(0,0) rotate(0); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) rotate(720deg); opacity: 0; }
+    }
   </style>
 </head>
 <body>
-  <h1>Habits</h1>
-  <div class="sub">Today is {{ days[-1].strftime("%A, %b %d") }}</div>
-
-  <form class="add" method="post" action="{{ url_for('add') }}">
-    <input class="emoji" type="text" name="emoji" placeholder="🎯" maxlength="4">
-    <input class="name" type="text" name="name" placeholder="New habit" required>
-    <button type="submit">Add</button>
-  </form>
+  <header>
+    <h1>Habits</h1>
+    <div class="sub">{{ days[-1].strftime("%A · %B %d") }}</div>
+  </header>
 
   {% if rows %}
-  <table>
-    <thead>
-      <tr>
-        <th></th>
-        <th>Streak</th>
-        {% for d in days %}<th>{{ d.strftime("%a") }}</th>{% endfor %}
-        <th></th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in rows %}
-      <tr>
-        <td class="habit">{{ r.emoji }} {{ r.name }}</td>
-        <td class="streak">{{ r.streak }}🔥</td>
-        {% for d in r.week %}
-          <td><span class="cell {% if d.done %}done{% endif %} {% if loop.last %}today{% endif %}"></span></td>
-        {% endfor %}
-        <td>
-          <form method="post" action="{{ url_for('check', name=r.name) }}" style="display:inline">
-            <button type="submit" class="{% if r.done_today %}secondary{% endif %}" {% if r.done_today %}disabled{% endif %}>
-              {% if r.done_today %}✓ Done{% else %}Check{% endif %}
-            </button>
-          </form>
-        </td>
-        <td>
-          <form method="post" action="{{ url_for('delete', name=r.name) }}" style="display:inline" onsubmit="return confirm('Delete {{ r.name }}?')">
-            <button type="submit" class="danger">✕</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="empty">No habits yet. Add your first one above.</div>
+  <div class="overall">
+    <div class="ring" style="--pct: {{ overall_pct }}"><span>{{ overall_pct }}%</span></div>
+    <div>
+      <div class="label">This week</div>
+      <div class="value">
+        {% if overall_pct >= 80 %}Crushing it! 🔥
+        {% elif overall_pct >= 50 %}Solid progress 💪
+        {% elif overall_pct > 0 %}Keep going ✨
+        {% else %}Let's get started 🌱{% endif %}
+      </div>
+    </div>
+  </div>
   {% endif %}
+
+  <form class="add" method="post" action="{{ url_for('add') }}">
+    <input class="emoji" type="text" name="emoji" id="emoji-input" placeholder="🎯" maxlength="4" value="🎯">
+    <input class="name" type="text" name="name" placeholder="New habit" required>
+    <button class="primary" type="submit">Add</button>
+  </form>
+
+  <div class="emoji-picker">
+    {% for e in ["💪","🏃","📚","🧘","💧","🥗","😴","✍️","🎸","🧠","🦷","☀️","🎨","🚴","🧺"] %}
+    <button type="button" onclick="document.getElementById('emoji-input').value='{{ e }}'">{{ e }}</button>
+    {% endfor %}
+  </div>
+
+  {% if rows %}
+    {% for r in rows %}
+    <div class="habit">
+      <div class="habit-top">
+        <div class="habit-title"><span class="em">{{ r.emoji }}</span>{{ r.name }}</div>
+        <div class="stats">
+          <span class="fire">🔥 {{ r.streak }} day{{ 's' if r.streak != 1 else '' }}</span>
+          <span>🏆 Best {{ r.best }}</span>
+          <span>📊 {{ r.weekly_pct }}%/wk</span>
+          <span>✓ {{ r.total }} total</span>
+        </div>
+      </div>
+      <div class="actions">
+        <form method="post" action="{{ url_for('check', name=r.name) }}" onsubmit="{% if not r.done_today %}celebrate(event){% endif %}">
+          <button type="submit" class="check {% if r.done_today %}done{% endif %}">
+            {% if r.done_today %}✓ Done{% else %}Check{% endif %}
+          </button>
+        </form>
+        <form method="post" action="{{ url_for('delete', name=r.name) }}" onsubmit="return confirm('Delete {{ r.name }}?')">
+          <button type="submit" class="del">Remove</button>
+        </form>
+      </div>
+      <div class="week">
+        {% for d in r.week %}
+          <div class="day {% if loop.last %}today{% endif %}">
+            <div class="lbl">{{ d.label[:1] }}</div>
+            <div class="cell {% if d.done %}done{% endif %}">{% if d.done %}✓{% endif %}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty">
+      <div class="big">🌱</div>
+      <div>No habits yet.</div>
+      <div>Add your first one above to get started.</div>
+    </div>
+  {% endif %}
+
+  <script>
+    function celebrate(e) {
+      const btn = e.target.querySelector('button');
+      const rect = btn.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const colors = ['#10b981','#f97316','#3b82f6','#ec4899','#eab308'];
+      for (let i = 0; i < 24; i++) {
+        const p = document.createElement('div');
+        p.className = 'confetti';
+        p.style.left = x + 'px'; p.style.top = y + 'px';
+        p.style.background = colors[i % colors.length];
+        const angle = (Math.PI * 2 * i) / 24;
+        const dist = 80 + Math.random() * 80;
+        p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+        p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+        p.style.animation = 'burst 0.7s ease-out forwards';
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 800);
+      }
+    }
+  </script>
 </body>
 </html>

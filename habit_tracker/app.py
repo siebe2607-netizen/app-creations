@@ -22,10 +22,14 @@ def index():
             "name": name,
             "emoji": info["emoji"],
             "streak": core.streak(info["completions"]),
+            "best": core.longest_streak(info["completions"]),
+            "weekly_pct": core.weekly_pct(info["completions"]),
+            "total": len(info["completions"]),
             "done_today": today.isoformat() in done,
             "week": [{"label": d.strftime("%a"), "done": d.isoformat() in done} for d in days],
         })
-    return render_template("index.html", rows=rows, days=days)
+    overall_pct = round(sum(r["weekly_pct"] for r in rows) / len(rows)) if rows else 0
+    return render_template("index.html", rows=rows, days=days, overall_pct=overall_pct)
 
 
 @app.post("/add")
@@ -52,4 +56,4 @@ def delete(name: str):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0", debug=True, port=5050)
